@@ -1,0 +1,96 @@
+import tkinter as tk
+from tkinter import ttk
+import threading
+import time
+from collections import defaultdict
+
+class MyCoolApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Mon Application Tkinter")
+        self.countdown_ms = 10000
+        self.counting = False
+        self.timer_thread = None
+
+        self.loser_names = defaultdict(int)
+        self.loser_text = tk.Text(self.root, height=5, width=30, font=("Helvetica", 12))
+        self.loser_text.pack(pady=10)
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.countdown_label = ttk.Label(self.root, text="10 . 00", font=("Helvetica", 36))
+        self.countdown_label.pack(pady=20)
+
+        start_button = ttk.Button(self.root, text="Commencer", command=self.start_countdown)
+        start_button.pack(fill='both', expand=True)
+
+        pause_button = ttk.Button(self.root, text="Pause", command=self.pause_countdown)
+        pause_button.pack(fill='both', expand=True)
+
+        restart_button = ttk.Button(self.root, text="Recommencer", command=self.restart_timer)
+        restart_button.pack(fill='both', expand=True)
+
+        self.loser_name_entry = ttk.Entry(self.root, font=("Helvetica", 12))
+        self.loser_name_entry.pack(fill='both', expand=True, pady=10)
+
+        loser_button = ttk.Button(self.root, text="Perdant", command=self.add_loser_name)
+        loser_button.pack(fill='both', expand=True)
+
+    def start_countdown(self):
+        if not self.counting:
+            self.counting = True
+            self.timer_thread = threading.Thread(target=self.update_label)
+            self.timer_thread.start()
+
+    def update_label(self):
+        while self.counting and self.countdown_ms > 0:
+            seconds = self.countdown_ms // 1000
+            centiseconds = (self.countdown_ms % 1000) // 10
+            self.countdown_label.config(text=f"{seconds:02} . {centiseconds:02}")
+            time.sleep(0.1)
+            self.countdown_ms -= 100
+
+        if self.countdown_ms <= 0:
+            self.counting = False
+            self.countdown_label.config(text="00 . 00")
+
+    def pause_countdown(self):
+        self.counting = False
+
+    def add_loser_name(self):
+        name = self.loser_name_entry.get().strip()
+        if name:
+            self.loser_names[name] += 1
+            self.loser_name_entry.delete(0, tk.END)
+            self.update_loser_label()
+
+    def update_loser_label(self):
+        if self.loser_names:
+            losers_text = ""
+            for name, count in self.loser_names.items():
+                if count > 1:
+                    losers_text += f"{name} ({count} fois)\n"
+                else:
+                    losers_text += f"{name}\n"
+            self.loser_text.config(state='normal')
+            self.loser_text.delete(1.0, tk.END)
+            self.loser_text.insert(tk.END, losers_text)
+            self.loser_text.config(state='disabled')
+        else:
+            self.loser_text.config(state='normal')
+            self.loser_text.delete(1.0, tk.END)
+            self.loser_text.config(state='disabled')
+
+    def restart_timer(self):
+        self.countdown_ms = 10000
+        self.counting = False
+        self.countdown_label.config(text="10 . 00")
+
+def main():
+    root = tk.Tk()
+    app = MyCoolApp(root)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()
